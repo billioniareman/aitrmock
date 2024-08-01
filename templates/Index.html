@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Choose your task</title>
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        #department-filter,
+        #search-bar,
+        #search-button,
+        #reload-button,
+        #logout-button,
+        #admin-button {
+            margin: 10px 0;
+            padding: 8px;
+            font-size: 16px;
+        }
+
+        #data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        #data-table th, #data-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        #data-table th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #data-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        #data-table tr:hover {
+            background-color: #ddd;
+        }
+
+        #data-table td select {
+            padding: 5px;
+            margin: 2px 0;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        #data-table td button.submit-button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        #data-table td button.submit-button:disabled {
+            background-color: #9E9E9E;
+            cursor: not-allowed;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <a href="{{ url_for('hrt') }}"><button id="admin-button" style="
+            align-self: auto;
+            width: 40%;
+            padding: 10px;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;">HR and Technical</button></a>
+    <a href="{{ url_for('gd') }}"><button id="admin-button" style="width: 40%;
+            padding: 10px;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;">Group Discussion</button></a>
+</body>
+</html>

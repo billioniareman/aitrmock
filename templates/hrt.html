@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MOCK AITR</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        #department-filter,
+        #search-bar,
+        #search-button,
+        #reload-button,
+        #logout-button,
+        #admin-button {
+            margin: 10px 0;
+            padding: 8px;
+            font-size: 16px;
+        }
+
+        #data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        #data-table th, #data-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        #data-table th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #data-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        #data-table tr:hover {
+            background-color: #ddd;
+        }
+
+        #data-table td select {
+            padding: 5px;
+            margin: 2px 0;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        #data-table td button.submit-button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        #data-table td button.submit-button:disabled {
+            background-color: #9E9E9E;
+            cursor: not-allowed;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>MOCK AITR</h1>
+        {% if session['role'] == 'Faculty' or session['role'] == 'admin' %}
+            <h2>Welcome, {{ session.username }}!</h2>
+        {% endif %}
+    </header>
+
+    <main>
+        <label for="department-filter">Filter by Department:</label>
+        <select id="department-filter">
+            <option value="All">All</option>
+            {% for department in departments %}
+                <option value="{{ department }}">{{ department }}</option>
+            {% endfor %}
+        </select>
+
+        <input type="text" id="search-bar" placeholder="Student Name is ...">
+        <button id="search-button">Search</button>
+        <button id="reload-button">Reset</button>
+        {% if session['role']=='admin' %}
+            <a href="/admin"><button id="admin-button">Admin</button></a>
+        {% endif %}
+        <a href="/logout"><button id="logout-button">Logout</button></a>
+
+        <table id="data-table" border="1">
+            <thead>
+                <tr>
+                    <th>Enrollment</th>
+                    <th>Name</th>
+                    <th>Branch</th>
+                    <th>HR Assessment</th>
+                    <th>Technical Assessment</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in data %}
+                <tr data-id="{{ entry.id }}">
+                    <td>{{ entry.id }}</td>
+                    <td>{{ entry.Name }}</td>
+                    <td>{{ entry.Branch }}</td>
+                    <td>
+                        <select name="hr_assessment">
+                            {% for i in range(1, 6) %}
+                            <option value="{{ i }}" {% if i == 1 %}selected{% endif %}>{{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="technicalAssessment">
+                            {% for i in range(1, 6) %}
+                            <option value="{{ i }}" {% if i == 1 %}selected{% endif %}>{{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <button class="submit-button">Submit</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+
+    <script>
+        $(document).ready(function() {
+            $('#department-filter').on('change', function() {
+                var department = $(this).val();
+                fetchData(department);
+            });
+
+            $('#search-button').on('click', function() {
+                var query = $('#search-bar').val();
+                var department = $('#department-filter').val();
+                fetchData(department, query);
+            });
+
+            $('#reload-button').on('click', function() {
+                $('#department-filter').val('All');
+                $('#search-bar').val('');
+                fetchData('All');
+            });
+
+            $('#data-table').on('click', '.submit-button', function() {
+                var row = $(this).closest('tr');
+                var id = row.data('id');
+                var hr_assessment = row.find('select[name="hr_assessment"]').val();
+                var technical_assessment = row.find('select[name="technicalAssessment"]').val();
+
+                $.post('/update', {
+                    id: id,
+                    hr_assessment: hr_assessment,
+                    technical_assessment: technical_assessment,
+                }).done(function(response) {
+                    if (response.success) {
+                        alert('Update successful!');
+                    } else {
+                        alert('Update failed: ' + response.message);
+                    }
+                }).fail(function() {
+                    alert('Update failed');
+                });
+            });
+
+            function fetchData(department, query = '') {
+                $.get('/search', { department: department, q: query }, function(data) {
+                    var tbody = $('#data-table tbody');
+                    tbody.empty();
+
+                    data.forEach(function(entry) {
+                        var row = $('<tr>').attr('data-id', entry.id);
+                        row.append($('<td>').text(entry.id));
+                        row.append($('<td>').text(entry.Name));
+                        row.append($('<td>').text(entry.Branch));
+                        row.append($('<td>').append(createSelect('hr_assessment')));
+                        row.append($('<td>').append(createSelect('technicalAssessment')));
+                        row.append($('<td>').append($('<button>').addClass('submit-button').text('Submit')));
+
+                        tbody.append(row);
+                    });
+                });
+            }
+
+            function createSelect(name) {
+                var select = $('<select>').attr('name', name);
+                for (var i = 1; i <= 5; i++) {
+                    select.append($('<option>').val(i).text(i));
+                }
+                return select;
+            }
+        });
+    </script>
+</body>
+</html>
