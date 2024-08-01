@@ -7,9 +7,11 @@ import json
 import pandas as pd
 import io
 from datetime import date
+
 app = Flask(__name__)
 load_dotenv()
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+
 firebase_config_json = os.getenv('FIREBASE_CONFIG')
 if not firebase_config_json:
     raise ValueError("FIREBASE_CONFIG environment variable not set")
@@ -17,9 +19,11 @@ try:
     firebase_config = json.loads(firebase_config_json)
 except json.JSONDecodeError as e:
     raise ValueError("Invalid FIREBASE_CONFIG JSON format") from e
+
 cred = credentials.Certificate(firebase_config)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
+
 def fetch_firestore_data():
     docs = db.collection('enroll').stream()
     data = []
@@ -28,6 +32,7 @@ def fetch_firestore_data():
         doc_data['id'] = doc.id
         data.append(doc_data)
     return data
+
 def update_mock_record(student_ref, mock_data):
     student_doc = student_ref.get()
     if student_doc.exists:
@@ -62,18 +67,18 @@ def update_mock_record(student_ref, mock_data):
             })
         return mock_id
     return None
+
 @app.route('/')
 def index():
     if 'username' not in session:
         return redirect(url_for('login'))
     return render_template('Index.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-
-        # Fetch user from Firestore
         user_ref = db.collection('faculty').document(username)
         user = user_ref.get()
         if user.exists:
@@ -87,6 +92,7 @@ def login():
         else:
             return 'User does not exist'
     return render_template('Login.html')
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -105,10 +111,12 @@ def signup():
         })
         return redirect(url_for('login'))
     return render_template('Signup.html')
+
 @app.route('/logout')
 def logout():
     session.pop('username', None)
     return redirect(url_for('login'))
+
 @app.route('/search', methods=['GET'])
 def search():
     if 'username' not in session:
@@ -121,6 +129,7 @@ def search():
     if department and department != "All":
         data = [d for d in data if d.get('Branch') == department]
     return jsonify(data)
+
 @app.route('/update', methods=['POST'])
 def update():
     if 'username' not in session:
@@ -146,6 +155,7 @@ def update():
     except Exception as e:
         print(e)
         return jsonify({'success': False, 'message': str(e)})
+
 @app.route('/hrt', methods=['GET', 'POST'])
 def hrt():
     if 'username' not in session:
@@ -153,6 +163,7 @@ def hrt():
     data = fetch_firestore_data()
     departments = set(d.get('Branch') for d in data)
     return render_template('hrt.html', data=data, departments=departments)
+
 @app.route('/update_hrt', methods=['POST'])
 def update_hrt():
     if 'username' not in session:
@@ -169,24 +180,22 @@ def update_hrt():
         }
         student_ref = db.collection('enroll').document(doc_id)
         mock_id = update_mock_record(student_ref, mock_data)
-
         if mock_id:
             return jsonify({'success': True, 'mock_id': mock_id})
         else:
             return jsonify({'success': False, 'message': 'Failed to update mock'})
-
     except Exception as e:
         print(e)
         return jsonify({'success': False, 'message': str(e)})
+
 @app.route('/gd', methods=['GET', 'POST'])
 def gd():
     if 'username' not in session:
         return redirect(url_for('login'))
-
-    # Fetch data and render GD page
     data = fetch_firestore_data()
     departments = set(d.get('Branch') for d in data)
     return render_template('gd.html', data=data, departments=departments)
+
 @app.route('/search_gd', methods=['GET'])
 def search_gd():
     if 'username' not in session:
@@ -199,6 +208,7 @@ def search_gd():
     if department and department != "All":
         data = [d for d in data if d.get('Branch') == department]
     return jsonify(data)
+
 @app.route('/update_gd', methods=['POST'])
 def update_gd():
     if 'username' not in session:
@@ -206,7 +216,7 @@ def update_gd():
     try:
         doc_id = request.form.get('id')
         group_discussion = request.form.get('group_discussion')
-        today=date.today()
+        today = date.today()
         mock_data = {
             'Date': str(today.isoformat()),
             'Name': session['username'],
@@ -221,7 +231,7 @@ def update_gd():
     except Exception as e:
         print(e)
         return jsonify({'success': False, 'message': str(e)})
-# Admin routes
+
 @app.route('/admin')
 def admin():
     if 'username' not in session or session.get('role') != 'admin':
@@ -229,6 +239,7 @@ def admin():
     data = fetch_firestore_data()
     departments = sorted({d.get('Branch') for d in data if 'Branch' in d})
     return render_template('admin.html', departments=departments)
+
 @app.route('/admin/download')
 def download_data():
     if 'username' not in session or session.get('role') != 'admin':
@@ -242,5 +253,6 @@ def download_data():
     df.to_excel(excel_stream, index=False)
     excel_stream.seek(0)
     return send_file(excel_stream, download_name='data.xlsx', as_attachment=True)
+
 if __name__ == '__main__':
     app.run(debug=True)
